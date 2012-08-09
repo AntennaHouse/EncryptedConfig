@@ -17,8 +17,16 @@ We are using the meta-target 'all' for configurability.
 <project default="all" basedir=".">
     <!-- Load the properties file containing the project-specific configuration. -->
     <loadproperties srcFile="build.properties"/>
+    <property environment="env"/>
 
     <property name="x-jarfile" location="${dist}/${ant.project.name}.jar"/>
+
+    <taskdef resource="scala/tools/ant/antlib.xml">
+        <classpath>
+            <pathelement location="${env.SCALA_HOME}/lib/scala-compiler.jar"/>
+            <pathelement location="${env.SCALA_HOME}/lib/scala-library.jar"/>
+        </classpath>
+    </taskdef>
 
     <!-- Initialization target. -->
     <target name="init">
@@ -38,39 +46,59 @@ We are using the meta-target 'all' for configurability.
     <target name="all" depends="jar, test"/>
 
     <!-- Distribute target. Here we prepare for distribution to a customer. -->
-    <target name="dist" depends="clean, jar, javadoc" />
+    <target name="dist" depends="clean, jar, scaladoc" />
 
-    <!-- Compile target. Here we compile the .java files to .class files. -->
-    <target name="compile" depends="init">
-        <!-- Call javac.
+    <!-- Compile target. Here we compile the .scala files to .class files. -->
+    <target name="compile" depends="init,fsc">
+        <!-- Call scalac.
         Compile the files in @srcdir and place the classes in @destdir.
         @includeantruntime = Don't want Ant run-time libraries in the classpath.
         @debug = Include debugging information in the .class files.
         @debuglevel = Include line numbers, variable names, and lines of source.
         -->
-        <javac srcdir="${src}"
+        <scalac srcdir="${src}"
                 destdir="${build}"
-                includeantruntime="false"
-                debug="${debug}"
-                debuglevel="${debuglevel}">
+                >
             <!-- Include these libraries in the classpath. -->
             <classpath>
+                <pathelement location="${env.SCALA_HOME}/lib/scala-compiler.jar"/>
+                <pathelement location="${env.SCALA_HOME}/lib/scala-library.jar"/>
                 <pathelement path="${libs}"/>
                 <fileset dir="${lib}">
                     <include name="**/*.jar"/>
                 </fileset>
             </classpath>
-        </javac>
+            <include name="**/*.scala"/>
+        </scalac>
+    </target>
+
+    <!-- Fast compile. If this works it will make compiling unnecessary, but it's a lot faster. -->
+    <target name="fsc" depends="init">
+        <fsc srcdir="${src}"
+                destdir="${build}"
+                failonerror="false"
+                >
+            <!-- Include these libraries in the classpath. -->
+            <classpath>
+                <pathelement location="${env.SCALA_HOME}/lib/scala-compiler.jar"/>
+                <pathelement location="${env.SCALA_HOME}/lib/scala-library.jar"/>
+                <pathelement path="${libs}"/>
+                <fileset dir="${lib}">
+                    <include name="**/*.jar"/>
+                </fileset>
+            </classpath>
+            <include name="**/*.scala"/>
+        </fsc>
     </target>
 
     <!-- Compile the unit tests. -->
-    <target name="compile-tests" depends="compile">
-        <javac srcdir="${test}"
+    <target name="compile-tests" depends="compile" if="junit.path">
+        <scalac srcdir="${test}"
                 destdir="${build}"
-                includeantruntime="false"
-                debug="${debug}"
-                debuglevel="${debuglevel}">
+                >
             <classpath>
+                <pathelement location="${env.SCALA_HOME}/lib/scala-compiler.jar"/>
+                <pathelement location="${env.SCALA_HOME}/lib/scala-library.jar"/>
                 <pathelement path="${build}"/>
                 <pathelement path="${junit.path}"/>
                 <pathelement path="${libs}"/>
@@ -78,7 +106,8 @@ We are using the meta-target 'all' for configurability.
                     <include name="**/*.jar"/>
                 </fileset>
             </classpath>
-        </javac>
+            <include name="**/*.scala"/>
+        </scalac>
     </target>
 
     <!-- Test target. Make sure all the unit tests pass. -->
@@ -99,7 +128,7 @@ We are using the meta-target 'all' for configurability.
             <!-- Consider all classes named Test* to be unit tests and run them. -->
             <batchtest>
                 <fileset dir="${test}">
-                    <include name="**/Test*.java"/>
+                    <include name="**/Test*.scala"/>
                 </fileset>
             </batchtest>
         </junit>
@@ -151,20 +180,27 @@ We are using the meta-target 'all' for configurability.
     </target>
 
     <!-- Javadoc target. Generate the Javadoc for the project. -->
-    <target name="javadoc" depends="init">
+    <target name="scaladoc" depends="init">
         <!-- Create the directory for the project's documentation. -->
-        <mkdir dir="${javadoc}"/>
+        <mkdir dir="${scaladoc}"/>
 
         <!-- Generate the Javadoc -->
-        <javadoc destdir="${javadoc}">
-            <fileset dir="${src}" excludes="**/.*.swp **/*~"/>
+        <scaladoc 
+            srcdir="${src}"
+            destdir="${scaladoc}"
+            deprecation="yes"
+            unchecked="yes"
+            >
             <classpath>
+                <pathelement location="${env.SCALA_HOME}/lib/scala-compiler.jar"/>
+                <pathelement location="${env.SCALA_HOME}/lib/scala-library.jar"/>
                 <pathelement path="${libs}"/>
                 <fileset dir="${lib}">
                     <include name="**/*.jar"/>
                 </fileset>
             </classpath>
-        </javadoc>
+            <include name="**/*.scala"/>
+        </scaladoc>
     </target>
 
     <!-- Run target. Run the finished product. -->
@@ -177,7 +213,7 @@ We are using the meta-target 'all' for configurability.
 
     <!-- Clean target. Clean up all the generated files and directories. -->
     <target name="clean">
-        <delete dir="${javadoc}"/>
+        <delete dir="${scaladoc}"/>
         <delete dir="${dist}"/>
         <delete dir="${build}"/>
     </target>
