@@ -6,6 +6,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openpgp._
 import operator.bc.{BcPBESecretKeyDecryptorBuilder,BcPGPDigestCalculatorProvider}
 import operator.jcajce.JcePublicKeyDataDecryptorFactoryBuilder
+import scala.collection.JavaConversions._
 
 object Util {
 	def decryptStream(
@@ -90,8 +91,8 @@ object Util {
 		val pgpPub = new PGPPublicKeyRingCollection(
 				PGPUtil.getDecoderStream(input))
 
-		for (val ring: PGPPublicKeyRing <- pgpPub.getKeyRings) {
-			for (val key: PGPPublicKey <- ring.getPublicKeys) {
+		for (ring: PGPPublicKeyRing <- pgpPub.getKeyRings.asInstanceOf[java.util.Iterator[PGPPublicKeyRing]]) {
+			for (key: PGPPublicKey <- ring.getPublicKeys.asInstanceOf[java.util.Iterator[PGPPublicKey]]) {
 				if (key.isEncryptionKey) {
 					return key
 				}
