@@ -18,13 +18,27 @@ We are using the meta-target 'all' for configurability.
     <!-- Load the properties file containing the project-specific configuration. -->
     <loadproperties srcFile="build.properties"/>
     <property environment="env"/>
-
+    <property name="scala.home" value="${env.SCALA_HOME}"/>
+    <property name="scala.compiler" value="${scala.home}/lib/scala-compiler.jar"/>
+    <property name="scala.reflect" value="${scala.home}/lib/scala-reflect.jar"/>
+    <property name="scala.library" value="${scala.home}/lib/scala-library.jar"/>
+    <property name="scala.lib" value="${scala.home}/lib"/>
     <property name="x-jarfile" location="${dist}/${ant.project.name}.jar"/>
 
-    <taskdef resource="scala/tools/ant/antlib.xml">
-        <classpath>
-            <pathelement location="${env.SCALA_HOME}/lib/scala-compiler.jar"/>
-            <pathelement location="${env.SCALA_HOME}/lib/scala-library.jar"/>
+	<path id="build.classpath">
+    	<pathelement location="${basedir}" />
+		<pathelement location="${scala.compiler}"/>
+        <pathelement location="${scala.library}"/>
+        <pathelement path="${build}"/>
+	    <fileset dir="${scala.lib}"> <include name="*.jar" /> </fileset>
+    	<fileset dir="${lib}"> <include name="*.jar" /> </fileset>
+	</path>
+	<taskdef resource="scala/tools/ant/antlib.xml">
+    	<classpath>
+        	<pathelement location="${scala.compiler}"/>
+            <!-- NEW: For scala 2.10.2 you need scala-reflect: -->
+            <pathelement location="${scala.reflect}"/>
+            <pathelement location="${scala.library}"/>
         </classpath>
     </taskdef>
 
@@ -49,7 +63,7 @@ We are using the meta-target 'all' for configurability.
     <target name="dist" depends="clean, jar, scaladoc" />
 
     <!-- Compile target. Here we compile the .scala files to .class files. -->
-    <target name="compile" depends="init,fsc">
+    <target name="compile" depends="init">
         <!-- Call scalac.
         Compile the files in @srcdir and place the classes in @destdir.
         @includeantruntime = Don't want Ant run-time libraries in the classpath.
@@ -58,16 +72,8 @@ We are using the meta-target 'all' for configurability.
         -->
         <scalac srcdir="${src}"
                 destdir="${build}"
+				classpathref="build.classpath"
                 >
-            <!-- Include these libraries in the classpath. -->
-            <classpath>
-                <pathelement location="${env.SCALA_HOME}/lib/scala-compiler.jar"/>
-                <pathelement location="${env.SCALA_HOME}/lib/scala-library.jar"/>
-                <pathelement path="${libs}"/>
-                <fileset dir="${lib}">
-                    <include name="**/*.jar"/>
-                </fileset>
-            </classpath>
             <include name="**/*.scala"/>
         </scalac>
     </target>
@@ -77,16 +83,8 @@ We are using the meta-target 'all' for configurability.
         <fsc srcdir="${src}"
                 destdir="${build}"
                 failonerror="false"
+				classpathref="build.classpath"
                 >
-            <!-- Include these libraries in the classpath. -->
-            <classpath>
-                <pathelement location="${env.SCALA_HOME}/lib/scala-compiler.jar"/>
-                <pathelement location="${env.SCALA_HOME}/lib/scala-library.jar"/>
-                <pathelement path="${libs}"/>
-                <fileset dir="${lib}">
-                    <include name="**/*.jar"/>
-                </fileset>
-            </classpath>
             <include name="**/*.scala"/>
         </fsc>
     </target>
@@ -95,17 +93,8 @@ We are using the meta-target 'all' for configurability.
     <target name="compile-tests" depends="compile" if="junit.path">
         <scalac srcdir="${test}"
                 destdir="${build}"
+				classpathref="build.classpath"
                 >
-            <classpath>
-                <pathelement location="${env.SCALA_HOME}/lib/scala-compiler.jar"/>
-                <pathelement location="${env.SCALA_HOME}/lib/scala-library.jar"/>
-                <pathelement path="${build}"/>
-                <pathelement path="${junit.path}"/>
-                <pathelement path="${libs}"/>
-                <fileset dir="${lib}">
-                    <include name="**/*.jar"/>
-                </fileset>
-            </classpath>
             <include name="**/*.scala"/>
         </scalac>
     </target>
@@ -113,15 +102,6 @@ We are using the meta-target 'all' for configurability.
     <!-- Test target. Make sure all the unit tests pass. -->
     <target name="test" depends="compile, compile-tests" if="junit.path">
         <junit fork="yes" haltonfailure="yes">
-            <classpath>
-                <pathelement path="${build}"/>
-                <pathelement path="${junit.path}"/>
-                <pathelement path="${libs}"/>
-                <fileset dir="${lib}">
-                    <include name="**/*.jar"/>
-                </fileset>
-            </classpath>
-
             <!-- Format and report the test results to the console. -->
             <formatter type="plain" usefile="no"/>
 
@@ -191,14 +171,6 @@ We are using the meta-target 'all' for configurability.
             deprecation="yes"
             unchecked="yes"
             >
-            <classpath>
-                <pathelement location="${env.SCALA_HOME}/lib/scala-compiler.jar"/>
-                <pathelement location="${env.SCALA_HOME}/lib/scala-library.jar"/>
-                <pathelement path="${libs}"/>
-                <fileset dir="${lib}">
-                    <include name="**/*.jar"/>
-                </fileset>
-            </classpath>
             <include name="**/*.scala"/>
         </scaladoc>
     </target>
