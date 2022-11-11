@@ -49,7 +49,7 @@ We are using the meta-target 'all' for configurability.
     <target name="dist" depends="clean, jar, scaladoc" />
 
     <!-- Compile target. Here we compile the .scala files to .class files. -->
-    <target name="compile" depends="init,fsc">
+    <target name="compile" depends="init">
         <!-- Call scalac.
         Compile the files in @srcdir and place the classes in @destdir.
         @includeantruntime = Don't want Ant run-time libraries in the classpath.
