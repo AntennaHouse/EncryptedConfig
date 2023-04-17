@@ -3,6 +3,7 @@ package com.antennahouse.us.encryptedconfig
 import java.io._
 import java.security.{Provider, Security}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.openpgp.operator.jcajce.JcaKeyFingerprintCalculator
 import org.bouncycastle.openpgp._
 import operator.bc.{BcPBESecretKeyDecryptorBuilder,BcPGPDigestCalculatorProvider}
 import operator.jcajce.JcePublicKeyDataDecryptorFactoryBuilder
@@ -18,7 +19,7 @@ object Util {
 			case null => Security.addProvider(new BouncyCastleProvider)
 		}
 		val input = PGPUtil.getDecoderStream(in)
-		val pgpF = new PGPObjectFactory(input)
+		val pgpF = new PGPObjectFactory(input, new JcaKeyFingerprintCalculator())
 		val enc: PGPEncryptedDataList = pgpF.nextObject match {
 			case o: PGPEncryptedDataList => o
 			case _ => pgpF.nextObject match {
@@ -31,7 +32,7 @@ object Util {
 		var sKey: PGPPrivateKey = null
 		var pbe: PGPPublicKeyEncryptedData = null
 		val pgpSec = new PGPSecretKeyRingCollection(
-			PGPUtil.getDecoderStream(keyIn))
+			PGPUtil.getDecoderStream(keyIn), new JcaKeyFingerprintCalculator())
 		val it = enc.getEncryptedDataObjects
 		while (sKey == null && it.hasNext) {
 			pbe = it.next match {
@@ -48,13 +49,13 @@ object Util {
 
 		val clear = pbe.getDataStream((new JcePublicKeyDataDecryptorFactoryBuilder).setProvider("BC").build(sKey))
 
-		val plainFact = new PGPObjectFactory(clear)
+		val plainFact = new PGPObjectFactory(clear, new JcaKeyFingerprintCalculator())
 
 		var message: Any = plainFact.nextObject
 
 		message = message match {
 			case m: PGPCompressedData =>
-				val pgpFact = new PGPObjectFactory(m.getDataStream)
+				val pgpFact = new PGPObjectFactory(m.getDataStream, new JcaKeyFingerprintCalculator())
 				pgpFact.nextObject
 			case m =>
 				m
@@ -89,7 +90,7 @@ object Util {
 
 	private def readPublicKey(input: InputStream): PGPPublicKey = {
 		val pgpPub = new PGPPublicKeyRingCollection(
-				PGPUtil.getDecoderStream(input))
+				PGPUtil.getDecoderStream(input), new JcaKeyFingerprintCalculator())
 
 		for (ring: PGPPublicKeyRing <- pgpPub.getKeyRings.asInstanceOf[java.util.Iterator[PGPPublicKeyRing]]) {
 			for (key: PGPPublicKey <- ring.getPublicKeys.asInstanceOf[java.util.Iterator[PGPPublicKey]]) {
